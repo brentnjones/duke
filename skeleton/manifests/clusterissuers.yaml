@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ClusterIssuer definitions
+#
+# These are cluster-scoped resources and are typically pre-provisioned by the
+# platform team.  They are included here so the demo environment can be stood
+# up end-to-end from a single repo.
+#
+# Three issuers are provided to match the choices in the Software Template:
+#   • letsencrypt-prod   – production Let's Encrypt ACME (HTTP-01)
+#   • letsencrypt-staging – staging Let's Encrypt ACME (HTTP-01, for testing)
+#   • internal-ca        – corporate/internal CA backed by a TLS Secret
+# ─────────────────────────────────────────────────────────────────────────────
+
+# --- Let's Encrypt Production ---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app.kubernetes.io/managed-by: platform-engineering
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: brentjon@redhat.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: openshift-default
+---
+# --- Let's Encrypt Staging (safe for CI / demos) ---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app.kubernetes.io/managed-by: platform-engineering
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: brentjon@redhat.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: openshift-default
+---
+# --- Internal Corporate CA ---
+# Requires a Secret named "internal-ca-key-pair" in the cert-manager namespace
+# containing tls.crt and tls.key for the root/intermediate CA.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: internal-ca
+  labels:
+    app.kubernetes.io/managed-by: platform-engineering
+spec:
+  ca:
+    secretName: internal-ca-key-pair

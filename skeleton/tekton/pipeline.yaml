@@ -1,0 +1,167 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: ${{ values.appName }}-onboarding
+  namespace: ${{ values.namespace }}
+  labels:
+    app: ${{ values.appName }}
+    app.kubernetes.io/managed-by: rhdh
+spec:
+  params:
+    - name: APP_NAME
+      type: string
+      default: ${{ values.appName }}
+    - name: GIT_URL
+      type: string
+    - name: GIT_REVISION
+      type: string
+      default: main
+    - name: IMAGE
+      type: string
+      default: ${{ values.containerImage }}
+    - name: NAMESPACE
+      type: string
+      default: ${{ values.namespace }}
+
+  workspaces:
+    - name: source
+    - name: dockerconfig
+      optional: true
+
+  tasks:
+    # ── 1. Clone source repository ──────────────────────────────────
+    - name: git-clone
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: Task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.GIT_URL)
+        - name: revision
+          value: $(params.GIT_REVISION)
+        - name: deleteExisting
+          value: "true"
+
+    # ── 2. Run unit tests ───────────────────────────────────────────
+    - name: run-tests
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: Task
+          - name: name
+            value: maven
+          - name: namespace
+            value: openshift-pipelines
+      runAfter:
+        - git-clone
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: GOALS
+          value: ["test"]
+
+    # ── 3. Build and push container image ───────────────────────────
+    - name: build-image
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: Task
+          - name: name
+            value: buildah
+          - name: namespace
+            value: openshift-pipelines
+      runAfter:
+        - run-tests
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: dockerconfig
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: TLSVERIFY
+          value: "true"
+
+    # ── 4. Apply OpenShift + cert-manager manifests ─────────────────
+    - name: apply-manifests
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: Task
+          - name: name
+            value: openshift-client
+          - name: namespace
+            value: openshift-pipelines
+      runAfter:
+        - build-image
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+      params:
+        - name: SCRIPT
+          value: |
+            set -e
+            echo "==> Applying namespace"
+            oc apply -f manifests/namespace.yaml
+
+            echo "==> Applying deployment and service"
+            oc apply -f manifests/deployment.yaml
+
+            echo "==> Requesting TLS certificate via cert-manager"
+            oc apply -f manifests/certificate.yaml
+
+            echo "==> Exposing application via Route with TLS"
+            oc apply -f manifests/route.yaml
+
+            echo "==> Waiting for Certificate to become Ready"
+            oc wait certificate/$(params.APP_NAME)-cert \
+              --for=condition=Ready \
+              --timeout=120s \
+              -n $(params.NAMESPACE)
+
+            echo "==> Verifying Route is admitted"
+            oc get route $(params.APP_NAME) -n $(params.NAMESPACE) \
+              -o jsonpath='{.status.ingress[0].conditions[?(@.type=="Admitted")].status}'
+
+    # ── 5. Smoke-test the TLS endpoint ──────────────────────────────
+    - name: smoke-test-tls
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: Task
+          - name: name
+            value: curl
+          - name: namespace
+            value: openshift-pipelines
+      runAfter:
+        - apply-manifests
+      params:
+        - name: url
+          value: https://${{ values.hostname }}/health/ready
+        - name: options
+          value: "--fail --retry 5 --retry-delay 10 --max-time 30"
+
+  results:
+    - name: image-digest
+      description: Digest of the built container image
+      value: $(tasks.build-image.results.IMAGE_DIGEST)
+    - name: app-url
+      description: URL of the deployed application
+      value: "https://${{ values.hostname }}"

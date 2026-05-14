@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# cert-manager Certificate
+#
+# Requests a signed TLS certificate for the application hostname from the
+# ClusterIssuer selected in the Software Template.  cert-manager will:
+#   1. Create an ACME challenge (or sign via the CA) automatically.
+#   2. Store the resulting certificate + private key in the Secret named below.
+#   3. Renew the certificate automatically before it expires (default: 2/3 of
+#      the validity period).
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ${{ values.appName }}-cert
+  namespace: ${{ values.namespace }}
+  labels:
+    app: ${{ values.appName }}
+    app.kubernetes.io/managed-by: rhdh
+  annotations:
+    # Surface certificate status in the RHDH tech-docs / entity page
+    backstage.io/certificate-host: ${{ values.hostname }}
+spec:
+  # The Secret that will hold the signed certificate and private key.
+  # The OpenShift Route below references this same secret name.
+  secretName: ${{ values.tlsSecretName }}
+
+  # Certificate validity and renewal window
+  duration: 2160h       # 90 days (Let's Encrypt default)
+  renewBefore: 360h     # Renew 15 days before expiry
+
+  subject:
+    organizations:
+      - Example Corp
+
+  # Common name and Subject Alternative Names
+  commonName: ${{ values.hostname }}
+  dnsNames:
+    - ${{ values.hostname }}
+
+  # Which ClusterIssuer signs this certificate
+  issuerRef:
+    name: ${{ values.clusterIssuer }}
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+  # Store the private key using PKCS8 format (required by some Java apps)
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 2048
+    rotationPolicy: Always

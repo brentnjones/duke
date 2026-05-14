@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OpenShift Route with Edge TLS Termination
+#
+# The Route uses the TLS secret populated by cert-manager.
+# Edge termination means TLS is handled at the router; traffic inside the
+# cluster travels over HTTP (acceptable for internal cluster comms).
+#
+# To use re-encrypt termination (TLS end-to-end), change termination to
+# "reencrypt" and ensure the Service also serves TLS.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ${{ values.appName }}
+  namespace: ${{ values.namespace }}
+  labels:
+    app: ${{ values.appName }}
+    app.kubernetes.io/managed-by: rhdh
+  annotations:
+    # cert-manager injects the certificate into this Route automatically via
+    # the openshift-routes integration (cert-manager >= 1.13 / RHOCP 4.14+).
+    # If the integration is not available, the Secret is referenced directly.
+    cert-manager.io/issuer-kind: ClusterIssuer
+    cert-manager.io/issuer-name: ${{ values.clusterIssuer }}
+    # Force HTTPS redirect
+    haproxy.router.openshift.io/hsts_header: "max-age=31536000;includeSubDomains;preload"
+    haproxy.router.openshift.io/timeout: 30s
+spec:
+  host: ${{ values.hostname }}
+  to:
+    kind: Service
+    name: ${{ values.appName }}
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+    # Reference the Secret created by cert-manager
+    # (populated automatically when using the OpenShift Routes integration)
+    # If managing the secret manually, provide the certificate fields here.
+  wildcardPolicy: None

@@ -1,0 +1,228 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: openshift-app-with-certmanager
+  title: Onboard New App to OpenShift with TLS (cert-manager)
+  description: >
+    Scaffolds a new application on OpenShift with automated TLS certificate
+    provisioning via cert-manager. Creates a namespace, deploys the app,
+    and configures a signed certificate through a ClusterIssuer.
+  tags:
+    - openshift
+    - cert-manager
+    - tls
+    - recommended
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+spec:
+  owner: platform-engineering
+  type: service
+
+  # ─────────────────────────────────────────────────────────────────
+  # Step 1 – Collect information from the developer
+  # ─────────────────────────────────────────────────────────────────
+  parameters:
+    - title: Application Details
+      required:
+        - appName
+        - appDescription
+        - owner
+        - system
+      properties:
+        appName:
+          title: Application Name
+          type: string
+          description: Unique name for your application (lowercase, no spaces)
+          pattern: '^[a-z0-9\-]+$'
+          ui:autofocus: true
+        appDescription:
+          title: Description
+          type: string
+          description: Short description of what this application does
+        owner:
+          title: Owner Team
+          type: string
+          description: Team responsible for this application
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds:
+              - Group
+        system:
+          title: System
+          type: string
+          description: The system this application belongs to
+          ui:field: EntityPicker
+          ui:options:
+            allowedKinds:
+              - System
+
+    - title: OpenShift Configuration
+      required:
+        - namespace
+        - environment
+        - replicas
+        - containerImage
+      properties:
+        namespace:
+          title: Target Namespace
+          type: string
+          description: OpenShift namespace to deploy into (will be created if it does not exist)
+          pattern: '^[a-z0-9\-]+$'
+        environment:
+          title: Environment
+          type: string
+          default: dev
+          enum:
+            - dev
+            - test
+            - staging
+            - prod
+          enumNames:
+            - Development
+            - Test
+            - Staging
+            - Production
+        replicas:
+          title: Initial Replica Count
+          type: integer
+          default: 1
+          minimum: 1
+          maximum: 10
+        containerImage:
+          title: Container Image
+          type: string
+          description: "e.g. quay.io/myorg/myapp:latest"
+        containerPort:
+          title: Container Port
+          type: integer
+          default: 8080
+        resourceLimits:
+          title: Resource Limits
+          type: object
+          properties:
+            cpu:
+              title: CPU Limit
+              type: string
+              default: "500m"
+            memory:
+              title: Memory Limit
+              type: string
+              default: "512Mi"
+
+    - title: TLS / cert-manager Configuration
+      required:
+        - clusterIssuer
+        - hostname
+      properties:
+        clusterIssuer:
+          title: ClusterIssuer
+          type: string
+          description: cert-manager ClusterIssuer to use for certificate signing
+          default: letsencrypt-prod
+          enum:
+            - letsencrypt-prod
+            - letsencrypt-staging
+            - internal-ca
+          enumNames:
+            - Let's Encrypt (Production)
+            - Let's Encrypt (Staging / testing)
+            - Internal Corporate CA
+        hostname:
+          title: Application Hostname
+          type: string
+          description: "Fully-qualified domain name for the Route, e.g. myapp.apps.cluster.example.com"
+        tlsSecretName:
+          title: TLS Secret Name
+          type: string
+          description: Name of the Kubernetes Secret that will store the certificate (auto-generated if blank)
+
+    - title: Source Control
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+              - gitlab.com
+              - bitbucket.org
+
+  # ─────────────────────────────────────────────────────────────────
+  # Step 2 – Execute scaffolding actions
+  # ─────────────────────────────────────────────────────────────────
+  steps:
+    - id: fetch-skeleton
+      name: Fetch Application Skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          appName: ${{ parameters.appName }}
+          appDescription: ${{ parameters.appDescription }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          namespace: ${{ parameters.namespace }}
+          environment: ${{ parameters.environment }}
+          replicas: ${{ parameters.replicas }}
+          containerImage: ${{ parameters.containerImage }}
+          containerPort: ${{ parameters.containerPort | default(8080) }}
+          cpuLimit: ${{ parameters.resourceLimits.cpu | default("500m") }}
+          memoryLimit: ${{ parameters.resourceLimits.memory | default("512Mi") }}
+          clusterIssuer: ${{ parameters.clusterIssuer }}
+          hostname: ${{ parameters.hostname }}
+          tlsSecretName: ${{ parameters.tlsSecretName | default(parameters.appName + "-tls") }}
+          repoUrl: ${{ parameters.repoUrl }}
+
+    - id: publish
+      name: Publish to Source Control
+      action: publish:github
+      input:
+        allowedHosts: ["github.com", "gitlab.com", "bitbucket.org"]
+        description: ${{ parameters.appDescription }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        repoVisibility: private
+        topics:
+          - openshift
+          - cert-manager
+          - ${{ parameters.environment }}
+
+    - id: create-argocd-app
+      name: Register App in ArgoCD / GitOps
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.appName }}-${{ parameters.environment }}
+        argoInstance: main
+        namespace: ${{ parameters.namespace }}
+        repoUrl: ${{ steps.publish.output.remoteUrl }}
+        path: manifests
+        project: ${{ parameters.environment }}
+        labelValue: ${{ parameters.appName }}
+
+    - id: register-catalog
+      name: Register in RHDH Software Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  # ─────────────────────────────────────────────────────────────────
+  # Step 3 – Surface useful links after scaffolding completes
+  # ─────────────────────────────────────────────────────────────────
+  output:
+    links:
+      - title: Open Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+        icon: github
+      - title: View in Software Catalog
+        icon: catalog
+        entityRef: ${{ steps.register-catalog.output.entityRef }}
+      - title: Application URL (TLS)
+        url: https://${{ parameters.hostname }}
+        icon: web
+      - title: OpenShift Console – Namespace
+        url: https://console-openshift-console.apps.cluster.example.com/k8s/cluster/namespaces/${{ parameters.namespace }}
+        icon: openshift

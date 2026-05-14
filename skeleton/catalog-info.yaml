@@ -1,0 +1,36 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.appName }}
+  title: ${{ values.appName }}
+  description: ${{ values.appDescription }}
+  annotations:
+    # Source control
+    backstage.io/source-location: url:${{ values.repoUrl }}
+    # OpenShift / Kubernetes integration
+    backstage.io/kubernetes-id: ${{ values.appName }}
+    backstage.io/kubernetes-namespace: ${{ values.namespace }}
+    # ArgoCD GitOps integration
+    argocd/app-name: ${{ values.appName }}-${{ values.environment }}
+    # Techdocs
+    backstage.io/techdocs-ref: dir:.
+    # TLS / cert-manager – informational
+    cert-manager.io/certificate-name: ${{ values.appName }}-cert
+    cert-manager.io/hostname: ${{ values.hostname }}
+    cert-manager.io/cluster-issuer: ${{ values.clusterIssuer }}
+  tags:
+    - openshift
+    - cert-manager
+    - tls
+    - ${{ values.environment }}
+  links:
+    - url: https://${{ values.hostname }}
+      title: Application (TLS)
+      icon: web
+spec:
+  type: service
+  lifecycle: ${{ values.environment }}
+  owner: ${{ values.owner }}
+  system: ${{ values.system }}
+  providesApis: []
+  consumesApis: []

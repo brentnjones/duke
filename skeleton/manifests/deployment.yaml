@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${{ values.appName }}
+  namespace: ${{ values.namespace }}
+  labels:
+    app: ${{ values.appName }}
+    app.kubernetes.io/name: ${{ values.appName }}
+    app.kubernetes.io/managed-by: rhdh
+    environment: ${{ values.environment }}
+spec:
+  replicas: ${{ values.replicas }}
+  selector:
+    matchLabels:
+      app: ${{ values.appName }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ${{ values.appName }}
+        version: "1.0.0"
+    spec:
+      # Run as non-root to comply with OpenShift restricted SCC
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ${{ values.appName }}
+          image: ${{ values.containerImage }}
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: ${{ values.containerPort }}
+              protocol: TCP
+          env:
+            - name: APP_ENV
+              value: "${{ values.environment }}"
+            - name: APP_PORT
+              value: "${{ values.containerPort }}"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "${{ values.cpuLimit }}"
+              memory: "${{ values.memoryLimit }}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: ${{ values.containerPort }}
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: ${{ values.containerPort }}
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${{ values.appName }}
+  namespace: ${{ values.namespace }}
+  labels:
+    app: ${{ values.appName }}
+    app.kubernetes.io/managed-by: rhdh
+spec:
+  selector:
+    app: ${{ values.appName }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: ${{ values.containerPort }}
+      protocol: TCP
+  type: ClusterIP
