@@ -196,7 +196,6 @@ spec:
         namespace: ${{ parameters.namespace }}
         repoUrl: ${{ steps.publish.output.remoteUrl }}
         path: manifests
-        project: ${{ parameters.environment }}
         labelValue: ${{ parameters.appName }}
 
     - id: register-catalog
