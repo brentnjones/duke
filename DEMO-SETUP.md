@@ -641,6 +641,12 @@ oc create secret generic rhdh-argocd-secret \
 
 ### 7.2 Create the RHDH `app-config` ConfigMap
 
+Get your actual RHDH route host first (use this value in `baseUrl` and `origin`):
+
+```bash
+oc get route backstage-rhdh-demo -n rhdh -o jsonpath='{.spec.host}'
+```
+
 ```bash
 cat <<'EOF' | oc apply -f -
 apiVersion: v1
@@ -652,15 +658,24 @@ data:
   app-config.yaml: |
     app:
       title: "Red Hat Developer Hub – TLS Demo"
-      baseUrl: https://rhdh.apps.xps.planenotsimple.com
+      baseUrl: https://<rhdh-route-host>
 
     organization:
       name: "Example Corp"
 
     backend:
-      baseUrl: https://rhdh.apps.xps.planenotsimple.com
+      baseUrl: https://<rhdh-route-host>
       cors:
-        origin: https://rhdh.apps.xps.planenotsimple.com
+        origin: https://<rhdh-route-host>
+      auth:
+        keys:
+          - secret: demo-backend-secret-change-in-prod
+
+    auth:
+      environment: development
+      providers:
+        guest:
+          dangerouslyAllowOutsideDevelopment: true
 
     integrations:
       github:
@@ -702,7 +717,7 @@ data:
 EOF
 ```
 
-> **Note:** Replace `<cluster-domain>` and `<your-github-org>` with your actual values.
+> **Note:** Replace `<rhdh-route-host>` and `<your-github-org>` with your actual values.
 
 ### 7.3 Create the RHDH instance
 
@@ -750,6 +765,42 @@ oc get route backstage-rhdh-demo -n rhdh -o jsonpath='{.spec.host}'
 oc adm policy add-cluster-role-to-user view \
   -z rhdh-demo \
   -n rhdh
+```
+
+### 7.5 Enable GitHub scaffolder publish actions (`publish:github`)
+
+RHDH 1.9 images include the GitHub scaffolder module but it is disabled in the default dynamic plugin set. Enable it before running template scaffolding, otherwise template execution fails with:
+
+`Template action with ID 'publish:github' is not registered`
+
+```bash
+cat <<'EOF' | oc apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rhdh-dynamic-plugins-custom
+  namespace: rhdh
+data:
+  dynamic-plugins.yaml: |
+    includes:
+      - dynamic-plugins.default.yaml
+    plugins:
+      - package: ./dynamic-plugins/dist/backstage-plugin-scaffolder-backend-module-github-dynamic
+        disabled: false
+EOF
+
+oc patch backstage rhdh-demo -n rhdh --type merge \
+  -p '{"spec":{"application":{"dynamicPluginsConfigMapName":"rhdh-dynamic-plugins-custom"}}}'
+
+oc rollout restart deployment/backstage-rhdh-demo -n rhdh
+oc rollout status deployment/backstage-rhdh-demo -n rhdh --timeout=300s
+```
+
+Verify the action is enabled:
+
+```bash
+oc logs deployment/backstage-rhdh-demo -n rhdh --tail=200 \
+  | grep "Starting scaffolder with the following actions enabled"
 ```
 
 ---
@@ -841,7 +892,7 @@ Run through this list 30 minutes before the customer arrives:
 | Application Name | `demo-app` |
 | Description | `Customer demo application with TLS` |
 | Owner | `team-alpha` |
-| System | `ecommerce-platform` |
+| System | `team-alpha` |
 
 Click **Next**.
 

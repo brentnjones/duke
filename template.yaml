@@ -147,8 +147,6 @@ spec:
           ui:options:
             allowedHosts:
               - github.com
-              - gitlab.com
-              - bitbucket.org
 
   # ─────────────────────────────────────────────────────────────────
   # Step 2 – Execute scaffolding actions
@@ -180,7 +178,6 @@ spec:
       name: Publish to Source Control
       action: publish:github
       input:
-        allowedHosts: ["github.com", "gitlab.com", "bitbucket.org"]
         description: ${{ parameters.appDescription }}
         repoUrl: ${{ parameters.repoUrl }}
         defaultBranch: main
