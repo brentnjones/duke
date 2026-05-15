@@ -711,7 +711,7 @@ data:
         - type: config
           clusters:
             - name: local
-              url: https://kubernetes.default.svc
+              url: https://api.<cluster-domain>:6443
               authProvider: serviceAccount
               skipTLSVerify: false
 EOF
@@ -767,11 +767,12 @@ oc adm policy add-cluster-role-to-user view \
   -n rhdh
 ```
 
-### 7.5 Enable GitHub scaffolder publish actions (`publish:github`)
+### 7.5 Enable GitHub and ArgoCD scaffolder actions
 
-RHDH 1.9 images include the GitHub scaffolder module but it is disabled in the default dynamic plugin set. Enable it before running template scaffolding, otherwise template execution fails with:
+RHDH 1.9 images include the GitHub and ArgoCD scaffolder modules but both are disabled in the default dynamic plugin set. Enable them before running template scaffolding, otherwise template execution fails with errors like:
 
 `Template action with ID 'publish:github' is not registered`
+`Template action with ID 'argocd:create-resources' is not registered`
 
 ```bash
 cat <<'EOF' | oc apply -f -
@@ -786,6 +787,8 @@ data:
       - dynamic-plugins.default.yaml
     plugins:
       - package: ./dynamic-plugins/dist/backstage-plugin-scaffolder-backend-module-github-dynamic
+        disabled: false
+      - package: ./dynamic-plugins/dist/roadiehq-scaffolder-backend-argocd-dynamic
         disabled: false
 EOF
 

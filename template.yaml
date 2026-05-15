@@ -220,5 +220,5 @@ spec:
         url: https://${{ parameters.hostname }}
         icon: web
       - title: OpenShift Console – Namespace
-        url: https://console-openshift-console.apps.cluster.example.com/k8s/cluster/namespaces/${{ parameters.namespace }}
+        url: https://${{ parameters.hostname | replace(parameters.appName + ".", "console-openshift-console.") }}/k8s/cluster/namespaces/${{ parameters.namespace }}
         icon: openshift
