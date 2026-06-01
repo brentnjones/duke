@@ -178,7 +178,6 @@ spec:
       name: Publish to GitLab
       action: publish:gitlab
       input:
-        description: ${{ parameters.appDescription }}
         repoUrl: ${{ parameters.repoUrl }}
         defaultBranch: main
         repoVisibility: private
