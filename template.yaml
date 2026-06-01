@@ -15,7 +15,7 @@ metadata:
   annotations:
     backstage.io/techdocs-ref: dir:.
 spec:
-  owner: platform-engineering
+  owner: platform-team
   type: service
 
   # ─────────────────────────────────────────────────────────────────
