@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: rhdh
     environment: ${{ values.environment }}
-    team: ${{ values.owner }}
+    team: ${{ values.owner | replace("group:default/", "") | replace("group:", "") }}
   annotations:
     openshift.io/display-name: "${{ values.appName }} – ${{ values.environment }}"
     openshift.io/description: "${{ values.appDescription }}"

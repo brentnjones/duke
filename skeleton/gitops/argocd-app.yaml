@@ -10,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: ${{ values.environment }}
+  project: platform
   source:
     repoURL: ${{ values.repoUrl }}
     targetRevision: main
