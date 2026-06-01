@@ -139,7 +139,6 @@ spec:
     - title: Source Control
       required:
         - repoOwner
-        - repoName
       properties:
         repoOwner:
           title: Repository Owner / Group
@@ -150,7 +149,7 @@ spec:
         repoName:
           title: Repository Name
           type: string
-          description: Unique GitLab project name to create, for example appname-dev
+          description: Optional. Leave blank to use a unique default based on the app name and environment.
           pattern: '^[a-z0-9\-]+$'
 
   # ─────────────────────────────────────────────────────────────────
@@ -177,15 +176,15 @@ spec:
           clusterIssuer: ${{ parameters.clusterIssuer }}
           hostname: ${{ parameters.hostname }}
           tlsSecretName: ${{ parameters.tlsSecretName | default(parameters.appName + "-tls") }}
-          repoUrl: gitlab.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName }}
+          repoUrl: gitlab.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName | default(parameters.appName + "-" + parameters.environment) }}
 
     - id: publish-gitlab
       name: Publish to GitLab
       action: publish:gitlab
       input:
-        repoUrl: gitlab.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName }}
+        repoUrl: gitlab.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName | default(parameters.appName + "-" + parameters.environment) }}
         defaultBranch: main
-        repoVisibility: private
+        repoVisibility: public
 
     - id: create-argocd-app-gitlab
       name: Register GitLab App in ArgoCD / GitOps
