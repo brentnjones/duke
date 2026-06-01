@@ -138,26 +138,14 @@ spec:
 
     - title: Source Control
       required:
-        - repoHost
         - repoUrl
       properties:
-        repoHost:
-          title: Source Control Provider
-          type: string
-          default: github.com
-          enum:
-            - github.com
-            - gitlab.com
-          enumNames:
-            - GitHub
-            - GitLab
         repoUrl:
           title: Repository Location
           type: string
           ui:field: RepoUrlPicker
           ui:options:
             allowedHosts:
-              - github.com
               - gitlab.com
 
   # ─────────────────────────────────────────────────────────────────
@@ -186,23 +174,8 @@ spec:
           tlsSecretName: ${{ parameters.tlsSecretName | default(parameters.appName + "-tls") }}
           repoUrl: ${{ parameters.repoUrl }}
 
-    - id: publish-github
-      name: Publish to GitHub
-      if: ${{ parameters.repoHost == 'github.com' }}
-      action: publish:github
-      input:
-        description: ${{ parameters.appDescription }}
-        repoUrl: ${{ parameters.repoUrl }}
-        defaultBranch: main
-        repoVisibility: private
-        topics:
-          - openshift
-          - cert-manager
-          - ${{ parameters.environment }}
-
     - id: publish-gitlab
       name: Publish to GitLab
-      if: ${{ parameters.repoHost == 'gitlab.com' }}
       action: publish:gitlab
       input:
         description: ${{ parameters.appDescription }}
@@ -210,21 +183,8 @@ spec:
         defaultBranch: main
         repoVisibility: private
 
-    - id: create-argocd-app-github
-      name: Register GitHub App in ArgoCD / GitOps
-      if: ${{ parameters.repoHost == 'github.com' }}
-      action: argocd:create-resources
-      input:
-        appName: ${{ parameters.appName }}-${{ parameters.environment }}
-        argoInstance: main
-        namespace: ${{ parameters.namespace }}
-        repoUrl: ${{ steps['publish-github'].output.remoteUrl }}
-        path: manifests
-        labelValue: ${{ parameters.appName }}
-
     - id: create-argocd-app-gitlab
       name: Register GitLab App in ArgoCD / GitOps
-      if: ${{ parameters.repoHost == 'gitlab.com' }}
       action: argocd:create-resources
       input:
         appName: ${{ parameters.appName }}-${{ parameters.environment }}
@@ -234,17 +194,8 @@ spec:
         path: manifests
         labelValue: ${{ parameters.appName }}
 
-    - id: register-catalog-github
-      name: Register GitHub Component in RHDH Software Catalog
-      if: ${{ parameters.repoHost == 'github.com' }}
-      action: catalog:register
-      input:
-        repoContentsUrl: ${{ steps['publish-github'].output.repoContentsUrl }}
-        catalogInfoPath: /catalog-info.yaml
-
     - id: register-catalog-gitlab
       name: Register GitLab Component in RHDH Software Catalog
-      if: ${{ parameters.repoHost == 'gitlab.com' }}
       action: catalog:register
       input:
         repoContentsUrl: ${{ steps['publish-gitlab'].output.repoContentsUrl }}
@@ -256,11 +207,11 @@ spec:
   output:
     links:
       - title: Open Repository
-        url: ${{ steps['publish-github'].output.remoteUrl or steps['publish-gitlab'].output.remoteUrl }}
-        icon: github
+        url: ${{ steps['publish-gitlab'].output.remoteUrl }}
+        icon: gitlab
       - title: View in Software Catalog
         icon: catalog
-        entityRef: ${{ steps['register-catalog-github'].output.entityRef or steps['register-catalog-gitlab'].output.entityRef }}
+        entityRef: ${{ steps['register-catalog-gitlab'].output.entityRef }}
       - title: Application URL (TLS)
         url: https://${{ parameters.hostname }}
         icon: web
