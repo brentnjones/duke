@@ -138,15 +138,20 @@ spec:
 
     - title: Source Control
       required:
-        - repoUrl
+        - repoOwner
+        - repoName
       properties:
-        repoUrl:
-          title: Repository Location
+        repoOwner:
+          title: Repository Owner / Group
           type: string
-          ui:field: RepoUrlPicker
+          ui:field: RepoOwnerPicker
           ui:options:
-            allowedHosts:
-              - gitlab.com
+            host: gitlab.com
+        repoName:
+          title: Repository Name
+          type: string
+          description: Unique GitLab project name to create, for example appname-dev
+          pattern: '^[a-z0-9\-]+$'
 
   # ─────────────────────────────────────────────────────────────────
   # Step 2 – Execute scaffolding actions
@@ -172,13 +177,13 @@ spec:
           clusterIssuer: ${{ parameters.clusterIssuer }}
           hostname: ${{ parameters.hostname }}
           tlsSecretName: ${{ parameters.tlsSecretName | default(parameters.appName + "-tls") }}
-          repoUrl: ${{ parameters.repoUrl }}
+          repoUrl: gitlab.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName }}
 
     - id: publish-gitlab
       name: Publish to GitLab
       action: publish:gitlab
       input:
-        repoUrl: ${{ parameters.repoUrl }}
+        repoUrl: gitlab.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName }}
         defaultBranch: main
         repoVisibility: private
 
