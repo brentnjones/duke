@@ -188,6 +188,7 @@ spec:
       input:
         appName: ${{ parameters.appName }}-${{ parameters.environment }}
         argoInstance: main
+        projectName: platform
         namespace: ${{ parameters.namespace }}
         repoUrl: ${{ steps['publish-gitlab'].output.remoteUrl }}.git
         path: manifests
