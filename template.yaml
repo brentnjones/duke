@@ -91,7 +91,8 @@ spec:
         containerImage:
           title: Container Image
           type: string
-          description: "e.g. quay.io/myorg/myapp:latest"
+          default: quay.io/openshift/origin-hello-openshift:latest
+          description: "Use a publicly pullable image or configure an image pull secret for private registries."
         containerPort:
           title: Container Port
           type: integer

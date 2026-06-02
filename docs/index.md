@@ -107,7 +107,7 @@ Check:
 - App Name: `demo-app`
 - Namespace: `demo-app-dev`
 - Environment: `dev`
-- Image: `quay.io/redhat-developer/developer-images:latest`
+- Image: `quay.io/openshift/origin-hello-openshift:latest`
 - Port: `8080`
 - ClusterIssuer: `letsencrypt-staging`
 - Hostname: `demo-app.apps.<cluster-domain>`

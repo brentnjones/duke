@@ -914,7 +914,7 @@ Click **Next**.
 | Target Namespace | `demo-app-dev` |
 | Environment | `Development` |
 | Replica Count | `1` |
-| Container Image | `quay.io/redhat-developer/developer-images:latest` |
+| Container Image | `quay.io/openshift/origin-hello-openshift:latest` |
 | Container Port | `8080` |
 | CPU Limit | `500m` |
 | Memory Limit | `512Mi` |

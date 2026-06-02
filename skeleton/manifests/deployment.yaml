@@ -56,18 +56,14 @@ spec:
                 - ALL
             readOnlyRootFilesystem: true
           readinessProbe:
-            httpGet:
-              path: /health/ready
+            tcpSocket:
               port: ${{ values.containerPort }}
-              scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
-            httpGet:
-              path: /health/live
+            tcpSocket:
               port: ${{ values.containerPort }}
-              scheme: HTTP
             initialDelaySeconds: 20
             periodSeconds: 30
             failureThreshold: 3
