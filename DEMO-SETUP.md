@@ -703,6 +703,10 @@ data:
           instances:
             - name: main
               url: https://${ARGOCD_SERVER}
+      projectSettings:
+        clusterResourceWhitelist:
+          - group: ""
+            kind: Namespace
 
     kubernetes:
       serviceLocatorMethod:
@@ -718,6 +722,8 @@ EOF
 ```
 
 > **Note:** Replace `<rhdh-route-host>` and `<your-github-org>` with your actual values.
+
+> **Important for this template:** The scaffolder-generated ArgoCD projects must allow the cluster-scoped `Namespace` resource. If `projectSettings.clusterResourceWhitelist` does not include `Namespace`, Argo sync fails with `one or more synchronization tasks are not valid` and `resource :Namespace is not permitted in project ...`.
 
 ### 7.3 Create the RHDH instance
 

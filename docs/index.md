@@ -72,6 +72,16 @@ If the error persists even with new app names, set a unique **ArgoCD Project Nam
 
 Also verify RHDH is using your latest template revision. In the failed task log, check the `argocd:create-resources` input and confirm `projectName` is not the old hard-coded value.
 
+If Argo shows `one or more synchronization tasks are not valid` with `resource :Namespace is not permitted in project ...`, add this to RHDH `app-config.yaml` and restart Backstage:
+
+```yaml
+argocd:
+   projectSettings:
+      clusterResourceWhitelist:
+         - group: ""
+            kind: Namespace
+```
+
 ### Owner or system relation warnings
 
 If catalog warns about unresolved entities, ensure the selected Group and System exist and are registered in the catalog.
