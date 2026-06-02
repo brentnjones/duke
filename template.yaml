@@ -119,7 +119,7 @@ spec:
           title: ClusterIssuer
           type: string
           description: cert-manager ClusterIssuer to use for certificate signing (must exist in the target cluster)
-          default: letsencrypt-prod-dns01
+          default: letsencrypt-staging-dns01
         hostname:
           title: Application Hostname
           type: string

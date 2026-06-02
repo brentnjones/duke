@@ -20,7 +20,7 @@ Make sure you have:
 - A valid repo destination (currently GitHub in this template)
 - A valid owner Group and system entity in the catalog
 - A hostname that resolves for your cluster domain
-- A ClusterIssuer available in the cluster (for example `letsencrypt-prod-dns01`)
+- A ClusterIssuer available in the cluster (for example `letsencrypt-staging-dns01`)
 
 ## How To Run The Template
 
@@ -109,5 +109,5 @@ Check:
 - Environment: `dev`
 - Image: `quay.io/openshift/origin-hello-openshift:latest`
 - Port: `8080`
-- ClusterIssuer: `letsencrypt-prod-dns01`
+- ClusterIssuer: `letsencrypt-staging-dns01`
 - Hostname: `demo-app.apps.<cluster-domain>`

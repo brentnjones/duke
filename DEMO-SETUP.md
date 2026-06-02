@@ -927,7 +927,7 @@ Click **Next**.
 
 | Field | Demo value |
 |-------|-----------|
-| ClusterIssuer | `letsencrypt-prod-dns01` |
+| ClusterIssuer | `letsencrypt-staging-dns01` |
 | Hostname | `demo-app.apps.<cluster-domain>` |
 | TLS Secret Name | *(leave blank — auto-generated as `demo-app-tls`)* |
 
