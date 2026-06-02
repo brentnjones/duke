@@ -151,6 +151,11 @@ spec:
           type: string
           description: Optional. Leave blank to use a unique default based on the app name and environment.
           pattern: '^[a-z0-9\-]+$'
+        argoProjectName:
+          title: ArgoCD Project Name
+          type: string
+          description: Optional. Override the ArgoCD project name used by GitOps registration. Use this if you rerun demos and hit duplicate project errors.
+          pattern: '^[a-z0-9\-]+$'
 
   # ─────────────────────────────────────────────────────────────────
   # Step 2 – Execute scaffolding actions
@@ -192,7 +197,7 @@ spec:
       input:
         appName: ${{ parameters.appName }}-${{ parameters.environment }}
         argoInstance: main
-        projectName: platform
+        projectName: ${{ parameters.argoProjectName | default(parameters.repoName | default(parameters.appName + "-" + parameters.environment)) }}
         namespace: ${{ parameters.namespace }}
         repoUrl: ${{ steps['publish-gitlab'].output.remoteUrl }}.git
         path: manifests

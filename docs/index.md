@@ -58,6 +58,12 @@ Make sure you have:
 
 If you see errors like `publish:github is not registered` or `argocd:create-resources is not registered`, enable the required scaffolder backend modules in your RHDH dynamic plugins config.
 
+If you see `Duplicate project detected. Cannot overwrite existing.` during `Register GitLab App in ArgoCD / GitOps`, the ArgoCD project name is already taken. Use a unique app/environment combination (or a different repository name) when re-running the template for repeat demos.
+
+If the error persists even with new app names, set a unique **ArgoCD Project Name** in the template form (for example `myapp-dev-r2`). This error occurs when the same Argo project name already exists with a different repo or namespace.
+
+Also verify RHDH is using your latest template revision. In the failed task log, check the `argocd:create-resources` input and confirm `projectName` is not the old hard-coded value.
+
 ### Owner or system relation warnings
 
 If catalog warns about unresolved entities, ensure the selected Group and System exist and are registered in the catalog.
