@@ -58,6 +58,14 @@ Make sure you have:
 
 If you see errors like `publish:github is not registered` or `argocd:create-resources is not registered`, enable the required scaffolder backend modules in your RHDH dynamic plugins config.
 
+If `Publish to GitLab` fails with `HTTP Error: 403 Forbidden` after `Creating repo ...`, repository creation succeeded but the token could not push the initial commit. This is usually one of:
+
+- GitLab token missing `write_repository` scope
+- token user not `Maintainer`/`Owner` in the target GitLab group
+- group/project default branch protection blocking push to `main`
+
+Fix by updating the GitLab token and permissions, then rerun the template.
+
 If you see `Duplicate project detected. Cannot overwrite existing.` during `Register GitLab App in ArgoCD / GitOps`, the ArgoCD project name is already taken. Use a unique app/environment combination (or a different repository name) when re-running the template for repeat demos.
 
 If the error persists even with new app names, set a unique **ArgoCD Project Name** in the template form (for example `myapp-dev-r2`). This error occurs when the same Argo project name already exists with a different repo or namespace.
