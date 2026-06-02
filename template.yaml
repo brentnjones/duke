@@ -118,16 +118,8 @@ spec:
         clusterIssuer:
           title: ClusterIssuer
           type: string
-          description: cert-manager ClusterIssuer to use for certificate signing
-          default: letsencrypt-prod
-          enum:
-            - letsencrypt-prod
-            - letsencrypt-staging
-            - internal-ca
-          enumNames:
-            - Let's Encrypt (Production)
-            - Let's Encrypt (Staging / testing)
-            - Internal Corporate CA
+          description: cert-manager ClusterIssuer to use for certificate signing (must exist in the target cluster)
+          default: letsencrypt-prod-dns01
         hostname:
           title: Application Hostname
           type: string
